@@ -4,6 +4,7 @@ use crate::interpreter::interpreter::execute;
 use crate::parser::parser::*;
 use crate::interpreter::interpreter::eval;
 use crate::ir::ast::Expression;
+use std::process::Command;
 
 pub mod interpreter;
 pub mod ir;
@@ -31,6 +32,17 @@ fn main() -> io::Result<()> {
         if input == "exit()" {
             break;
         }
+
+        // Clear the terminal screen
+        if input == "clear" {
+            if cfg!(target_os = "windows") {
+                Command::new("cmd").arg("/c").arg("cls").status()?;
+            } else {
+                Command::new("clear").status()?;
+            }
+            continue;
+        }
+
 
         // If just enter or spaces continue the loop
         if input == "" {
