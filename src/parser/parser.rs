@@ -41,7 +41,7 @@ fn statement(input: &str) -> IResult<&str, Statement> {
 }
 
 // Parse basic expressions
-fn expression(input: &str) -> IResult<&str, Expression> {
+pub fn expression(input: &str) -> IResult<&str, Expression> {
     alt((
         comparison_expression,
         arithmetic_expression,
@@ -195,6 +195,18 @@ pub fn parse(input: &str) -> IResult<&str, Vec<Statement>> {
 mod tests {
     use super::*; // Import everything from parent module
     use crate::ir::ast::{Expression, Statement}; // Import AST types
+    
+    #[test]
+    fn test_simple_expression(){
+        let input = "10";
+        let (rest, expr) = expression(input).unwrap();
+        assert_eq!(rest, "");
+        match expr {
+            Expression::CInt(val) => assert_eq!(val, 10),
+            _ => panic!("Expected CInt"),
+        }
+    }
+
     #[test]
     fn test_simple_assignment() {
         let input = "x = 42";
@@ -221,7 +233,7 @@ mod tests {
     }
 
     #[test]
-    fn test_complex_expression() {
+    fn test_complex_assignment() {
         let input = "x = (2 * 3) + (10 - 4)";
         let (rest, stmts) = parse(input).unwrap();
         assert_eq!(rest, "");
