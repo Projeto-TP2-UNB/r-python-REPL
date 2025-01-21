@@ -1,15 +1,14 @@
-use std::io::{self, Write};
-use std::collections::HashMap;
-use crate::interpreter::interpreter::execute;
-use crate::parser::parser::*;
 use crate::interpreter::interpreter::eval;
+use crate::interpreter::interpreter::execute;
 use crate::ir::ast::Expression;
+use crate::parser::parser::*;
+use std::collections::HashMap;
+use std::io::{self, Write};
 
 pub mod interpreter;
 pub mod ir;
 pub mod parser;
 pub mod tc;
-
 
 fn main() -> io::Result<()> {
     // Print welcome message
@@ -37,50 +36,43 @@ fn main() -> io::Result<()> {
             continue;
         }
 
-        
         // Parsing of expressions
         match expression(input) {
-            Ok(("", expr)) =>{
+            Ok(("", expr)) => {
                 // Evaluate the expression
                 match eval(expr, &current_env.clone()) {
-                    Ok(evaluated_expression) => {
-                        match evaluated_expression{
-                            Expression::CInt(val) => println!("{:?}", val),
-                            Expression::CReal(val) => println!("{:?}", val),
-                            Expression::CString(string) => println!("{:?}", string),
-                            Expression::CTrue => println!("True"),
-                            Expression::CFalse => println!("False"),
-                            _ => panic!(),
-                        }
+                    Ok(evaluated_expression) => match evaluated_expression {
+                        Expression::CInt(val) => println!("{:?}", val),
+                        Expression::CReal(val) => println!("{:?}", val),
+                        Expression::CString(string) => println!("{:?}", string),
+                        Expression::CTrue => println!("True"),
+                        Expression::CFalse => println!("False"),
+                        _ => panic!(),
                     },
                     Err(e) => {
                         println!("Execution error: {}", e);
-                    },
+                    }
                 }
-
-            },
+            }
             // If not expression -> test if statements
-            Ok((_, expr)) => {
-                match parse(input) {
-                    Ok((remaining, statements)) => {
-                
-                        if !remaining.is_empty() {
-                            println!("Warning: Unparsed input remains: {:?}\n", remaining);
-                        }
-        
-                        for stmt in statements {
-                            match execute(stmt, current_env.clone()) {
-                                Ok(new_env) => {
-                                    current_env = new_env;
-                                }
-                                Err(e) => {
-                                    println!("Execution error: {}", e);
-                                }
+            Ok((_, _expr)) => match parse(input) {
+                Ok((remaining, statements)) => {
+                    if !remaining.is_empty() {
+                        println!("Warning: Unparsed input remains: {:?}\n", remaining);
+                    }
+
+                    for stmt in statements {
+                        match execute(stmt, current_env.clone()) {
+                            Ok(new_env) => {
+                                current_env = new_env;
+                            }
+                            Err(e) => {
+                                println!("Execution error: {}", e);
                             }
                         }
                     }
-                    Err(e) => println!("Parse error: {:?}", e),
                 }
+                Err(e) => println!("Parse error: {:?}", e),
             },
             Err(_) => println!("Parse error"),
         }

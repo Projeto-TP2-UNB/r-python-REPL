@@ -195,9 +195,9 @@ pub fn parse(input: &str) -> IResult<&str, Vec<Statement>> {
 mod tests {
     use super::*; // Import everything from parent module
     use crate::ir::ast::{Expression, Statement}; // Import AST types
-    
+
     #[test]
-    fn test_simple_expression(){
+    fn test_simple_expression() {
         let input = "10";
         let (rest, expr) = expression(input).unwrap();
         assert_eq!(rest, "");
