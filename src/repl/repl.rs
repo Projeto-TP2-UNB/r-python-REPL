@@ -121,3 +121,73 @@ fn repl_parse_statements(input: &str, mut current_env: HashMap<String, Expressio
     }
 }
 
+mod tests{
+    use super::*;
+
+    #[test]
+    fn test_simple_repl_parse_expression1() {
+        let input = "10 + 10";
+        let env = HashMap::new();
+        let output = repl_parse_expression(input, &env);
+        match output {
+            Ok(result) => assert_eq!("20", result),
+            Err(e) => panic!("Error: {}", e),
+        }
+    }
+
+    #[test]
+    fn test_simple_repl_parse_expression2() {
+        let input = "(10+100) * (500/100)";
+        let env = HashMap::new();
+        let output = repl_parse_expression(input, &env);
+        match output {
+            Ok(result) => assert_eq!("550", result),
+            Err(e) => panic!("Error: {}", e),
+        }
+    }
+
+    #[test]
+    fn test_simple_repl_parse_expression3() {
+        let input = "10-100";
+        let env = HashMap::new();
+        let output = repl_parse_expression(input, &env);
+        match output {
+            Ok(result) => assert_eq!("-90", result),
+            Err(e) => panic!("Error: {}", e),
+        }
+    }
+
+    #[test]
+    fn test_simple_repl_parse_expression4() {
+        let input = "90 -                                                           (100)";
+        let env = HashMap::new();
+        let output = repl_parse_expression(input, &env);
+        match output {
+            Ok(result) => assert_eq!("-10", result),
+            Err(e) => panic!("Error: {}", e),
+        }
+    }
+
+    #[test]
+    fn test_sad_path_repl_parse_expression1() {
+        let input = "a + b";
+        let env = HashMap::new();
+        let output = repl_parse_expression(input, &env);
+        match output {
+            Ok(_) => panic!("Error was expected"),
+            Err(e) => assert_eq!("Evaluation Error: Variable a not found", e),
+        }
+    }
+
+    #[test]
+    fn test_sad_path_repl_parse_expression2() {
+        let input = "exit";
+        let env = HashMap::new();
+        let output = repl_parse_expression(input, &env);
+        match output {
+            Ok(_) => panic!("Error was expected"),
+            Err(e) => assert_eq!("Evaluation Error: Variable exit not found", e),
+        }
+    }
+}
+
