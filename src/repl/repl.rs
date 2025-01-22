@@ -189,5 +189,56 @@ mod tests{
             Err(e) => assert_eq!("Evaluation Error: Variable exit not found", e),
         }
     }
-}
 
+    #[test]
+    fn test_happy_path_repl_parse_expression1() {
+        let input = "a + b";
+        let mut env = HashMap::new();
+        env.insert(String::from("a"), Expression::CInt(10));
+        env.insert(String::from("b"), Expression::CInt(20));
+        let output = repl_parse_expression(input, &env);
+        match output {
+            Ok(result) => assert_eq!("30", result),
+            Err(e) => panic!("Error: {}", e),
+        }
+    }
+
+    #[test]
+    fn test_happy_path_repl_parse_expression2() {
+        let input = "a + b";
+        let mut env = HashMap::new();
+        env.insert(String::from("a"), Expression::CReal(10.0));
+        env.insert(String::from("b"), Expression::CInt(20));
+        let output = repl_parse_expression(input, &env);
+        match output {
+            Ok(result) => assert_eq!("30", result),
+            Err(e) => panic!("Error: {}", e),
+        }
+    }
+
+    #[test]
+    fn test_happy_path_repl_parse_expression3() {
+        let input = "a * 500";
+        let mut env = HashMap::new();
+        env.insert(String::from("a"), Expression::CReal(10.0));
+        let output = repl_parse_expression(input, &env);
+        match output {
+            Ok(result) => assert_eq!("5000", result),
+            Err(e) => panic!("Error: {}", e),
+        }
+    }
+
+
+    #[test]
+    fn test_typechecker_sad_path_repl_parse_expression() {
+        let input = "a + b";
+        let mut env = HashMap::new();
+        env.insert(String::from("a"), Expression::CTrue);
+        env.insert(String::from("b"), Expression::CInt(20));
+        let output = repl_parse_expression(input, &env);
+        match output {
+            Ok(_) => panic!("Error was expected"),
+            Err(e) => assert_eq!("Evaluation Error: addition '(+)' is only defined for numbers (integers and real).", e),
+        }
+    }
+}
