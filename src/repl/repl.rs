@@ -122,7 +122,6 @@ fn repl_parse_statements(input: &str, mut current_env: HashMap<String, Expressio
 }
 
 mod tests{
-    use super::*;
 
     #[test]
     fn test_simple_repl_parse_expression1() {
@@ -241,4 +240,154 @@ mod tests{
             Err(e) => assert_eq!("Evaluation Error: addition '(+)' is only defined for numbers (integers and real).", e),
         }
     }
+
+    #[test]
+    fn test_repl_parse_assigment1() {
+        let input = "a = 10";
+        let env = HashMap::new();
+        let mut env_expected = HashMap::new();
+        env_expected.insert(String::from("a"), Expression::CInt(10));
+        let env_output = repl_parse_statements(input, env);
+        match env_output {
+            Ok(new_env) => assert_eq!(new_env, env_expected),
+            Err(_) => panic!("New enviroment was expected"),
+        }
+    }
+
+    #[test]
+    fn test_repl_parse_assigment2() {
+        let input = "a = 10 + 30";
+        let env = HashMap::new();
+        let mut env_expected = HashMap::new();
+        env_expected.insert(String::from("a"), Expression::CInt(40));
+        let env_output = repl_parse_statements(input, env);
+        match env_output {
+            Ok(new_env) => assert_eq!(new_env, env_expected),
+            Err(_) => panic!("New enviroment was expected"),
+        }
+    }
+
+    #[test]
+    fn test_repl_parse_assigment3() {
+        let input = "a = 10 * 30 + 400";
+        let env = HashMap::new();
+        let mut env_expected = HashMap::new();
+        env_expected.insert(String::from("a"), Expression::CInt(700));
+        let env_output = repl_parse_statements(input, env);
+        match env_output {
+            Ok(new_env) => assert_eq!(new_env, env_expected),
+            Err(_) => panic!("New enviroment was expected"),
+        }
+    }
+
+    #[test]
+    fn test_repl_parse_assigment4() {
+        let input = "a = 10 > 10";
+        let env = HashMap::new();
+        let mut env_expected = HashMap::new();
+        env_expected.insert(String::from("a"), Expression::CFalse);
+        let env_output = repl_parse_statements(input, env);
+        match env_output {
+            Ok(new_env) => assert_eq!(new_env, env_expected),
+            Err(_) => panic!("New enviroment was expected"),
+        }
+    }
+
+    #[test]
+    fn test_repl_parse_assigment5() {
+        let input = "a = 10 == 10";
+        let env = HashMap::new();
+        let mut env_expected = HashMap::new();
+        env_expected.insert(String::from("a"), Expression::CTrue);
+        let env_output = repl_parse_statements(input, env);
+        match env_output {
+            Ok(new_env) => assert_eq!(new_env, env_expected),
+            Err(_) => panic!("New enviroment was expected"),
+        }
+    }
+
+    #[test]
+    fn test_complex_repl_parse_assigment1() {
+
+        // R-Python >> a = 10
+        // R-Python >> b = a
+
+        let input = "a = 10";
+        let mut env = HashMap::new();
+        let mut env_expected = HashMap::new();
+        env_expected.insert(String::from("a"), Expression::CInt(10));
+        match repl_parse_statements(input, env){
+            Ok(new_env) => {
+                assert_eq!(new_env, env_expected);
+                env = new_env;
+            }
+            Err(_) => panic!("New enviroment was expected"),
+        }
+
+        let input = "b = a";
+        env_expected.insert(String::from("b"), Expression::CInt(10));
+        let result = repl_parse_statements(input, env);
+
+        match result {
+            Ok(new_env) => assert_eq!(new_env, env_expected),
+            Err(_) => panic!("New enviroment was expected"),
+        }
+    }
+
+    #[test]
+    fn test_complex_repl_parse_assigment2() {
+
+        // R-Python >> a = 10
+        // R-Python >> b = a
+
+        let input = "a = 10";
+        let mut env = HashMap::new();
+        let mut env_expected = HashMap::new();
+        env_expected.insert(String::from("a"), Expression::CInt(10));
+        match repl_parse_statements(input, env){
+            Ok(new_env) => {
+                assert_eq!(new_env, env_expected);
+                env = new_env;
+            }
+            Err(_) => panic!("New enviroment was expected"),
+        }
+
+        let input = "b = a";
+        env_expected.insert(String::from("b"), Expression::CInt(10));
+        let result = repl_parse_statements(input, env);
+
+        match result {
+            Ok(new_env) => assert_eq!(new_env, env_expected),
+            Err(_) => panic!("New enviroment was expected"),
+        }
+    }
+
+    #[test]
+    fn test_complex_repl_parse_assigment2() {
+
+        // R-Python >> a = 10
+        // R-Python >> b = a
+
+        let input = "a = 10";
+        let mut env = HashMap::new();
+        let mut env_expected = HashMap::new();
+        env_expected.insert(String::from("a"), Expression::CInt(10));
+        match repl_parse_statements(input, env){
+            Ok(new_env) => {
+                assert_eq!(new_env, env_expected);
+                env = new_env;
+            }
+            Err(_) => panic!("New enviroment was expected"),
+        }
+
+        let input = "b = a";
+        env_expected.insert(String::from("b"), Expression::CInt(10));
+        let result = repl_parse_statements(input, env);
+
+        match result {
+            Ok(new_env) => assert_eq!(new_env, env_expected),
+            Err(_) => panic!("New enviroment was expected"),
+        }
+    }
 }
+
