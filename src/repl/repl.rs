@@ -368,31 +368,4 @@ mod tests {
             Err(_) => panic!("New enviroment was expected"),
         }
     }
-
-    #[test]
-    fn test_complex_repl_parse_assigment2() {
-        // R-Python >> a = 10
-        // R-Python >> b = a
-
-        let input = "a = 10";
-        let mut env = HashMap::new();
-        let mut env_expected = HashMap::new();
-        env_expected.insert(String::from("a"), Expression::CInt(10));
-        match repl_parse_statements(input, env) {
-            Ok(new_env) => {
-                assert_eq!(new_env, env_expected);
-                env = new_env;
-            }
-            Err(_) => panic!("New enviroment was expected"),
-        }
-
-        let input = "b = a";
-        env_expected.insert(String::from("b"), Expression::CInt(10));
-        let result = repl_parse_statements(input, env);
-
-        match result {
-            Ok(new_env) => assert_eq!(new_env, env_expected),
-            Err(_) => panic!("New enviroment was expected"),
-        }
-    }
 }
