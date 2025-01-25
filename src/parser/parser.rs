@@ -4,7 +4,7 @@ use nom::{
     character::complete::{char, digit1, line_ending, space0, space1},
     combinator::{map, map_res, opt},
     multi::{many0, many1, separated_list1},
-    sequence::{delimited, preceded, tuple},
+    sequence::{delimited, preceded, tuple,pair},
     IResult,
 };
 
@@ -18,8 +18,22 @@ fn identifier(input: &str) -> IResult<&str, Name> {
 
 // Parse integer literals
 fn integer(input: &str) -> IResult<&str, Expression> {
-    map_res(digit1, |s: &str| s.parse::<i32>().map(Expression::CInt))(input)
+    map_res(
+        pair(opt(char('-')), digit1), // Parse optional '-' and digits
+        |(sign, digits): (Option<char>, &str)| {
+            digits.parse::<i32>().map(|num| {
+                if sign.is_some() {
+                    Expression::CInt(-num)
+                } else {
+                    Expression::CInt(num)
+                }
+            })
+        },
+    )(input)
 }
+
+//let (i, number) = map_res(recognize(preceded(opt(tag("-")), digit1)), |s| {
+//    isize::from_str(s)})(input);
 
 //term parser for arithmetic
 fn term(input: &str) -> IResult<&str, Expression> {
@@ -208,6 +222,17 @@ mod tests {
     }
 
     #[test]
+    fn test_simple_negative_number_expression() {
+        let input = "-10";
+        let (rest, expr) = expression(input).unwrap();
+        assert_eq!(rest, "");
+        match expr {
+            Expression::CInt(val) => assert_eq!(val, -10),
+            _ => panic!("Expected CInt"),
+        }
+    }
+
+    #[test]
     fn test_simple_assignment() {
         let input = "x = 42";
         let (rest, stmt) = assignment(input).unwrap();
@@ -217,6 +242,24 @@ mod tests {
                 assert_eq!(name, "x"); // Direct string comparison
                 match *expr {
                     Expression::CInt(val) => assert_eq!(val, 42),
+                    _ => panic!("Expected CInt"),
+                }
+            }
+            _ => panic!("Expected Assignment"),
+        }
+    }
+
+
+    #[test]
+    fn test_simple_negative_number_assignment() {
+        let input = "x = -10";
+        let (rest, stmt) = assignment(input).unwrap();
+        assert_eq!(rest, "");
+        match stmt {
+            Statement::Assignment(name, expr) => {
+                assert_eq!(name, "x"); // Direct string comparison
+                match *expr {
+                    Expression::CInt(val) => assert_eq!(val, -10),
                     _ => panic!("Expected CInt"),
                 }
             }
@@ -249,6 +292,8 @@ mod tests {
             _ => panic!("Expected Assignment"),
         }
     }
+
+
 
     #[test]
     fn test_multiline_with_if() {

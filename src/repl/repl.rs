@@ -168,6 +168,29 @@ mod tests{
         }
     }
 
+
+    #[test]
+    fn test_simple_repl_parse_expression5() {
+        let input = "(-90)*(-20) - (100)";
+        let env = HashMap::new();
+        let output = repl_parse_expression(input, &env);
+        match output {
+            Ok(result) => assert_eq!("1700", result),
+            Err(e) => panic!("Error: {}", e),
+        }
+    }
+
+    #[test]
+    fn test_simple_repl_parse_expression6() {
+        let input = "-90*(-20) - (200)";
+        let env = HashMap::new();
+        let output = repl_parse_expression(input, &env);
+        match output {
+            Ok(result) => assert_eq!("1600", result),
+            Err(e) => panic!("Error: {}", e),
+        }
+    }
+
     #[test]
     fn test_sad_path_repl_parse_expression1() {
         let input = "a + b";
@@ -241,4 +264,16 @@ mod tests{
             Err(e) => assert_eq!("Evaluation Error: addition '(+)' is only defined for numbers (integers and real).", e),
         }
     }
+
+    #[test]
+    fn test_negative_first_argument() {
+        let input = "-10-100";
+        let env = HashMap::new();
+        let output = repl_parse_expression(input, &env);
+        match output {
+            Ok(result) => assert_eq!("-110", result),
+            Err(e) => panic!("Error: {}", e),
+        }
+    }
+
 }

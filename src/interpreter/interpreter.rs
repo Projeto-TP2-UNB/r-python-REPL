@@ -372,6 +372,15 @@ mod tests {
     }
 
     #[test]
+    fn eval_add_expression4() {
+        let env = HashMap::new();
+        let c10 = CInt(-10);
+        let c20 = CInt(20);
+        let add1 = Add(Box::new(c10), Box::new(c20));
+        assert_eq!(eval(add1, &env), Ok(CInt(10)));
+    }
+
+    #[test]
     fn eval_sub_expression1() {
         let env = HashMap::new();
         let c10 = CInt(10);
