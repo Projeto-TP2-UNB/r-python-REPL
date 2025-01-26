@@ -188,7 +188,7 @@ mod tests {
 
     #[test]
     fn test_simple_repl_parse_expression6() {
-        let input = "-90*(-20) - (200)";
+        let input = "- 90*(- 20) - (200)";
         let env = HashMap::new();
         let output = repl_parse_expression(input, &env);
         match output {

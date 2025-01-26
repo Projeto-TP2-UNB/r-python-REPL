@@ -19,9 +19,10 @@ fn identifier(input: &str) -> IResult<&str, Name> {
 // Parse integer literals
 fn integer(input: &str) -> IResult<&str, Expression> {
     map_res(
-        pair(opt(char('-')), digit1), // Parse optional '-' and digits
+        pair(opt(preceded(space0, char('-'))), preceded(space0, digit1)),
         |(sign, digits): (Option<char>, &str)| {
             digits.parse::<i32>().map(|num| {
+
                 if sign.is_some() {
                     Expression::CInt(-num)
                 } else {
