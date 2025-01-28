@@ -1,6 +1,6 @@
 use crate::ir::ast::{EnvValue, Environment, Expression, Name, Statement};
 use crate::tc::type_checker::{check_stmt, ControlType};
-use crate::HashMap;
+use std::collections::HashMap;
 
 type ErrorMessage = String;
 
@@ -430,6 +430,7 @@ mod tests {
     use std::collections::HashMap;
 
     use super::*;
+    use crate::ir::ast::EnvValue::*;
     use crate::ir::ast::Expression::*;
     use crate::ir::ast::Function;
     use crate::ir::ast::Statement::*;
@@ -481,7 +482,7 @@ mod tests {
         let c10 = CInt(-10);
         let c20 = CInt(20);
         let add1 = Add(Box::new(c10), Box::new(c20));
-        assert_eq!(eval(add1, &env), Ok(CInt(10)));
+        assert_eq!(eval(add1, &env), Ok(EnvValue::Exp(CInt(10))));
     }
 
     #[test]

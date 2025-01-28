@@ -447,14 +447,13 @@ mod tests {
         }
     }
 
-
     #[test]
     fn test_simple_negative_number_assignment() {
         let input = "x = -10";
         let (rest, stmt) = assignment(input).unwrap();
         assert_eq!(rest, "");
         match stmt {
-            Statement::Assignment(name, expr) => {
+            Statement::Assignment(name, expr, _type) => {
                 assert_eq!(name, "x"); // Direct string comparison
                 match *expr {
                     Expression::CInt(val) => assert_eq!(val, -10),
@@ -491,8 +490,6 @@ mod tests {
             _ => panic!("Expected Assignment"),
         }
     }
-
-
 
     #[test]
     fn test_multiline_with_if() {
