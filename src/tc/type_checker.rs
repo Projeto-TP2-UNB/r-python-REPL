@@ -50,8 +50,10 @@ pub fn check_stmt(
                 Some((_, result_type)) => {
                     if *result_type != exp_type {
                         return Err(format!(
-                            "[Type Error] variable '{}' is already defined as type '{:?}'.",
+                            "[Type Error] variable '{}' is already defined as type '{:?}' => '{:?}' != '{:?}'",
                             name.clone(),
+                            *result_type,
+                            exp_type,
                             *result_type
                         ));
                     }
@@ -412,14 +414,18 @@ mod tests {
 
     #[test]
     fn check_assignment_error1() {
-        let env = Environment::new();
-        let assignment = Assignment("a".to_string(), Box::new(CTrue), Some(TInteger));
+        let mut env = Environment::new();
+        env.insert(
+            String::from("a"),
+            ((Some(EnvValue::Exp(Expression::CInt(10)))), TInteger),
+        );
+        let assignment = Assignment("a".to_string(), Box::new(CTrue), Some(TUnk));
 
         match check_stmt(assignment, &env, None) {
             Ok(_) => assert!(false),
             Err(s) => assert_eq!(
                 s,
-                "[Type Error] cannot assign type 'TBool' to 'TInteger' variable."
+                "[Type Error] variable 'a' is already defined as type 'TInteger' => 'TBool' != 'TInteger'"
             ),
         }
     }
@@ -427,9 +433,9 @@ mod tests {
     #[test]
     fn check_assignment_error2() {
         let env = Environment::new();
-        let assignment1 = Assignment("a".to_string(), Box::new(CTrue), Some(TBool));
+        let assignment1 = Assignment("a".to_string(), Box::new(CTrue), Some(TUnk));
 
-        let assignment2 = Assignment("a".to_string(), Box::new(CInt(1)), None);
+        let assignment2 = Assignment("a".to_string(), Box::new(CInt(1)), Some(TUnk));
 
         let program = Sequence(Box::new(assignment1), Box::new(assignment2));
 
@@ -437,7 +443,7 @@ mod tests {
             Ok(_) => assert!(false),
             Err(s) => assert_eq!(
                 s,
-                "[Type Error] variable 'a' is already defined as type 'TBool'."
+                "[Type Error] variable 'a' is already defined as type 'TBool' => 'TInteger' != 'TBool'"
             ),
         }
     }
@@ -502,7 +508,7 @@ mod tests {
             Box::new(Assignment(
                 "b".to_string(),
                 Box::new(Add(Box::new(Var("b".to_string())), Box::new(CInt(1)))),
-                None,
+                Some(TUnk),
             )),
         );
         let program = Sequence(
