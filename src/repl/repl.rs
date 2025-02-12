@@ -11,7 +11,7 @@ use std::process::Command;
 pub fn repl() -> io::Result<()> {
     // Print welcome message
     println!("R-Python REPL");
-    println!("Type 'exit()' to quit\n");
+    println!("Type !help' for more commands or '!exit' to quit'\n");
     let mut current_env = Environment::new();
     loop {
         // Display prompt
@@ -23,28 +23,27 @@ pub fn repl() -> io::Result<()> {
         io::stdin().read_line(&mut input)?;
         let input = input.trim();
 
-        // Handle exit condition
-        if input == "exit()" {
-            break;
-        }
-
-        // Clear the terminal screen
-        if input == "clear" {
-            if cfg!(target_os = "windows") {
-                Command::new("cmd").arg("/c").arg("cls").status()?;
-            } else {
-                Command::new("clear").status()?;
+        // Handle inline commands (prefixed with '!')
+        if input.starts_with('!') {
+            
+            // Handle exit condition
+            if input == "!exit" {
+                break;
             }
-            continue;
+            else {
+                handle_inline_command(input, &mut current_env)?;
+                continue;
+            }
+            
         }
 
-        // If just enter or spaces continue the loop
-        if input == "" {
+        // If just enter or spaces, continue the loop
+        if input.is_empty() {
             continue;
         }
 
         // Reset the output
-        let mut output: Result<String, String> = Ok(format!(""));
+        let mut output: Result<String, String> = Ok(String::new());
 
         // Parsing of expressions
         match expression(input) {
@@ -61,16 +60,40 @@ pub fn repl() -> io::Result<()> {
             }
             Err(e) => output = Err(e.to_string()),
         }
+
+        // Print the output
         match output {
-            // Prints the output -> if no output -> continue the loop
             Ok(result) => {
                 if !result.is_empty() {
                     println!("{}", result);
-                } else {
-                    continue;
                 }
             }
-            Err(e) => println!("Sintax Error: {}", e),
+            Err(e) => println!("Syntax Error: {}", e),
+        }
+    }
+    Ok(())
+}
+
+/// Handles inline commands (prefixed with '!')
+fn handle_inline_command(input: &str, env: &mut Environment) -> io::Result<()> {
+    let command = input.trim_start_matches('!').trim();
+    match command {
+        "clear" => {
+            if cfg!(target_os = "windows") {
+                Command::new("cmd").arg("/c").arg("cls").status()?;
+            } else {
+                Command::new("clear").status()?;
+            }
+        }
+        "help" => {
+            println!("Available commands:");
+            println!("  !help  - Shows available commands");
+            println!("  !exit - Quits the program");
+            println!("  !clear - Clears the terminal screen");
+        }
+        _ => {
+            println!("Unknown command: {}", command);
+            println!("Type '!help' for a list of available commands.");
         }
     }
     Ok(())
