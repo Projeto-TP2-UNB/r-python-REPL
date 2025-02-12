@@ -40,27 +40,24 @@ pub fn check_stmt(
         Statement::Assignment(name, exp, kind) => {
             let mut new_env = env.clone();
             let exp_type = check_exp(*exp, &new_env)?;
-
-            if let Some(def_type) = kind {
-                if exp_type != def_type {
-                    return Err(format!(
-                        "[Type Error] cannot assign type '{:?}' to '{:?}' variable.",
-                        exp_type, def_type
-                    ));
+            let Some(def_type) = kind else {
+                return Err(format!("Assignment to non-existent variable: {}", name));
+            };
+            match new_env.get(&name) {
+                None => {
+                    new_env.insert(name, (None, exp_type));
                 }
-                new_env.insert(name, (None, exp_type));
-            } else {
-                let result_type = check_var_name(name.clone(), &new_env)?;
-                if exp_type != result_type {
-                    return Err(format!(
-                        "[Type Error] variable '{}' is already defined as type '{:?}'.",
-                        name.clone(),
-                        result_type
-                    ));
+                Some((_, result_type)) => {
+                    if *result_type != exp_type {
+                        return Err(format!(
+                            "[Type Error] variable '{}' is already defined as type '{:?}'.",
+                            name.clone(),
+                            *result_type
+                        ));
+                    }
+                    new_env.entry(name).and_modify(|e| e.1 = exp_type);
                 }
-                new_env.entry(name).and_modify(|e| e.1 = exp_type);
-            }
-
+            };
             Ok(ControlType::Continue(new_env))
         }
         Statement::IfThenElse(exp, stmt_then, option) => {

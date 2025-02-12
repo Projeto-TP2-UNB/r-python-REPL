@@ -21,6 +21,7 @@ pub struct Function {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Type {
     TInteger,
+    TUnk,
     TBool,
     TReal,
     TString,

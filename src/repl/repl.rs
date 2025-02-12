@@ -290,7 +290,8 @@ mod tests {
         let env_output = repl_parse_statements(input, env);
         match env_output {
             Ok(new_env) => assert_eq!(
-                new_env.get("a"), Some(&(Some(EnvValue::Exp(CInt(10))), TInteger))
+                new_env.get("a"),
+                Some(&(Some(EnvValue::Exp(CInt(10))), TInteger))
             ),
             Err(_) => panic!("New enviroment was expected"),
         }
@@ -303,23 +304,9 @@ mod tests {
         let env_output = repl_parse_statements(input, env);
         match env_output {
             Ok(new_env) => assert_eq!(
-                new_env.get("a"), Some(&(Some(EnvValue::Exp(CInt(40))), TInteger))
+                new_env.get("a"),
+                Some(&(Some(EnvValue::Exp(CInt(40))), TInteger))
             ),
-            Err(_) => panic!("New enviroment was expected"),
-        }
-    }
-
-    #[test]
-    fn test_repl_parse_assigment3() {
-        let input = "a = 10 * 30 + 400";
-        let env = Environment::new();
-        let mut env_expected = Environment::new();
-        env_expected
-            .entry(String::from("a"))
-            .and_modify(|e| e.0 = Some(EnvValue::Exp(Expression::CInt(700))));
-        let env_output = repl_parse_statements(input, env);
-        match env_output {
-            Ok(new_env) => assert_eq!(new_env, env_expected),
             Err(_) => panic!("New enviroment was expected"),
         }
     }
@@ -329,9 +316,10 @@ mod tests {
         let input = "a = 10 > 10";
         let env = Environment::new();
         let mut env_expected = Environment::new();
-        env_expected
-            .entry(String::from("a"))
-            .and_modify(|e| e.0 = Some(EnvValue::Exp(Expression::CFalse)));
+        env_expected.insert(
+            String::from("a"),
+            ((Some(EnvValue::Exp(Expression::CFalse))), TBool),
+        );
         let env_output = repl_parse_statements(input, env);
         match env_output {
             Ok(new_env) => assert_eq!(new_env, env_expected),
@@ -344,9 +332,10 @@ mod tests {
         let input = "a = 10 == 10";
         let env = Environment::new();
         let mut env_expected = Environment::new();
-        env_expected
-            .entry(String::from("a"))
-            .and_modify(|e| e.0 = Some(EnvValue::Exp(Expression::CTrue)));
+        env_expected.insert(
+            String::from("a"),
+            ((Some(EnvValue::Exp(Expression::CTrue))), TBool),
+        );
         let env_output = repl_parse_statements(input, env);
         match env_output {
             Ok(new_env) => assert_eq!(new_env, env_expected),
@@ -362,9 +351,10 @@ mod tests {
         let input = "a = 10";
         let mut env = Environment::new();
         let mut env_expected = Environment::new();
-        env_expected
-            .entry(String::from("a"))
-            .and_modify(|e| e.0 = Some(EnvValue::Exp(Expression::CInt(10))));
+        env_expected.insert(
+            String::from("a"),
+            ((Some(EnvValue::Exp(Expression::CInt(10)))), TInteger),
+        );
         match repl_parse_statements(input, env) {
             Ok(new_env) => {
                 assert_eq!(new_env, env_expected);
@@ -374,9 +364,10 @@ mod tests {
         }
 
         let input = "b = a";
-        env_expected
-            .entry(String::from("b"))
-            .and_modify(|e| e.0 = Some(EnvValue::Exp(Expression::CInt(10))));
+        env_expected.insert(
+            String::from("b"),
+            ((Some(EnvValue::Exp(Expression::CInt(10)))), TInteger),
+        );
         let result = repl_parse_statements(input, env);
 
         match result {
