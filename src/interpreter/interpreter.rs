@@ -55,7 +55,6 @@ pub fn execute(
     mut typecheck: bool,
 ) -> Result<ControlFlow, ErrorMessage> {
     let mut new_env = env.clone();
-    println!("Executando: {:?}", stmt);
     if typecheck {
         match check_stmt(stmt.clone(), &new_env, None)? {
             ControlType::Continue(control_env) => new_env = control_env,
@@ -150,7 +149,6 @@ fn call(name: Name, args: Vec<Expression>, env: &Environment) -> Result<EnvValue
             }
 
             // Execute function body
-            println!("Corpo da função: {:?}", func.body);
             if let Statement::Block(stmts) = *func.body.clone() {
                 match execute_block(stmts, &new_env, false)? {
                     ControlFlow::Return(value) => Ok(value),
@@ -437,14 +435,13 @@ fn lte(lhs: Expression, rhs: Expression, env: &Environment) -> Result<EnvValue, 
 mod tests {
     use std::collections::HashMap;
 
-
     use super::*;
     use crate::ir::ast::EnvValue::*;
     use crate::ir::ast::Expression::*;
-    use crate::parser::parser::parse;
     use crate::ir::ast::Function;
     use crate::ir::ast::Statement::*;
     use crate::ir::ast::Type::*;
+    use crate::parser::parser::parse;
     use approx::relative_eq;
 
     #[test]
@@ -962,11 +959,12 @@ mod tests {
             Function {
                 kind: TInteger,
                 params: Some(vec![("n".to_string(), TInteger)]),
-                body: Box::new(Block(Vec::new([Box::new(IfThenElse(
+                body: Box::new(Block(Vec::new([
+                    Box::new(IfThenElse(
                         Box::new(LT(Box::new(Var("n".to_string())), Box::new(CInt(0)))),
                         Box::new(Return(Box::new(CInt(0)))),
                         None,
-                    )), 
+                    )),
                     Box::new(Sequence(
                         Box::new(IfThenElse(
                             Box::new(LTE(Box::new(Var("n".to_string())), Box::new(CInt(2)))),
