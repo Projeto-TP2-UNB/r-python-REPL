@@ -1,5 +1,5 @@
 use crate::interpreter::interpreter::eval;
-use crate::interpreter::interpreter::execute;
+use crate::interpreter::interpreter::execute_block;
 use crate::interpreter::interpreter::ControlFlow;
 use crate::ir::ast::EnvValue;
 use crate::ir::ast::Environment;
@@ -20,21 +20,28 @@ pub fn repl() -> io::Result<()> {
 
         // Read input
         let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
-        let input = input.trim();
+        // Break condition
+        loop {
+            io::stdin().read_line(&mut input)?;
+            if input.trim().ends_with(";") {
+                input = input.trim().to_string();
+                input.pop();
+                break;
+            }
+        }
 
         // Handle inline commands (prefixed with '!')
         if input.starts_with('!') {
-            
             // Handle exit condition
             if input == "!exit" {
                 break;
-            }
-            else {
-                handle_inline_command(input, &mut current_env)?;
+            } else if input == "!reset" {
+                current_env = Environment::new();
+                continue;
+            } else {
+                handle_inline_command(&input, &mut current_env)?;
                 continue;
             }
-            
         }
 
         // If just enter or spaces, continue the loop
@@ -46,14 +53,14 @@ pub fn repl() -> io::Result<()> {
         let mut output: Result<String, String> = Ok(String::new());
 
         // Parsing of expressions
-        match expression(input) {
+        match expression(&input) {
             Ok(("", _expr)) => {
                 // Evaluate the expression
-                output = repl_parse_expression(input, &current_env);
+                output = repl_parse_expression(&input, &current_env);
             }
             Ok((_, _)) => {
                 // Try to parse statements in the input
-                match repl_parse_statements(input, current_env.clone()) {
+                match repl_parse_statements(&input, current_env.clone()) {
                     Ok(new_env) => current_env = new_env,
                     Err(e) => output = Err(e),
                 };
@@ -86,10 +93,11 @@ fn handle_inline_command(input: &str, env: &mut Environment) -> io::Result<()> {
             }
         }
         "help" => {
-            println!("Available commands:");
+            println!("\nAvailable commands:");
             println!("  !help  - Shows available commands");
             println!("  !exit - Quits the program");
             println!("  !clear - Clears the terminal screen");
+            println!("  !reset - Resets the context\n");
         }
         _ => {
             println!("Unknown command: {}", command);
@@ -131,15 +139,15 @@ fn repl_parse_statements(input: &str, mut current_env: Environment) -> Result<En
                     remaining
                 ));
             }
-            for stmt in statements {
-                match execute(stmt, &current_env.clone(), true) {
-                    Ok(ControlFlow::Continue(new_env)) => current_env = new_env,
-                    Ok(ControlFlow::Return(_)) => {
-                        return Err(format!("Execution Error: Return value not in a Function"))
-                    }
-                    Err(e) => return Err(format!("Execution Error: {}", e)),
+            println!("{:?}", statements);
+            match execute_block(statements, &current_env.clone(), true) {
+                Ok(ControlFlow::Continue(new_env)) => current_env = new_env,
+                Ok(ControlFlow::Return(_)) => {
+                    return Err(format!("Execution Error: Return value not in a Function"))
                 }
+                Err(e) => return Err(format!("Execution Error: {}", e)),
             }
+            println!("Contexto atual: {:?}", current_env);
             Ok(current_env.clone())
         }
         Err(e) => Err(format!("Statement Parse Error: {}", e)),

@@ -32,11 +32,15 @@ pub fn eval(exp: Expression, env: &Environment) -> Result<EnvValue, ErrorMessage
 }
 
 //helper function for executing blocks
-fn execute_block(stmts: Vec<Statement>, env: &Environment) -> Result<ControlFlow, ErrorMessage> {
+pub fn execute_block(
+    stmts: Vec<Statement>,
+    env: &Environment,
+    check: bool,
+) -> Result<ControlFlow, ErrorMessage> {
     let mut current_env = env.clone();
 
     for stmt in stmts {
-        match execute(stmt, &current_env, false)? {
+        match execute(stmt, &current_env, check)? {
             ControlFlow::Continue(new_env) => current_env = new_env,
             ControlFlow::Return(value) => return Ok(ControlFlow::Return(value)),
         }
@@ -48,18 +52,17 @@ fn execute_block(stmts: Vec<Statement>, env: &Environment) -> Result<ControlFlow
 pub fn execute(
     stmt: Statement,
     env: &Environment,
-    mut init: bool,
+    mut typecheck: bool,
 ) -> Result<ControlFlow, ErrorMessage> {
     let mut new_env = env.clone();
-
-    if init {
+    println!("Executando: {:?}", stmt);
+    if typecheck {
         match check_stmt(stmt.clone(), &new_env, None)? {
             ControlType::Continue(control_env) => new_env = control_env,
             ControlType::Return(_) => unreachable!(),
         }
-        init = false;
+        typecheck = false;
     }
-
     match stmt {
         Statement::Assignment(name, exp, _) => {
             let value = eval(*exp, &new_env)?;
@@ -70,12 +73,12 @@ pub fn execute(
             let value = eval(*cond, &new_env)?;
             match value {
                 EnvValue::Exp(Expression::CTrue) => match *then_stmt {
-                    Statement::Block(stmts) => execute_block(stmts, &new_env),
+                    Statement::Block(stmts) => execute_block(stmts, &new_env, false),
                     _ => execute(*then_stmt, &new_env, false),
                 },
                 EnvValue::Exp(Expression::CFalse) => match else_stmt {
                     Some(else_stmt) => match *else_stmt {
-                        Statement::Block(stmts) => execute_block(stmts, &new_env),
+                        Statement::Block(stmts) => execute_block(stmts, &new_env, false),
                         _ => execute(*else_stmt, &new_env, false),
                     },
                     None => Ok(ControlFlow::Continue(new_env)),
@@ -84,14 +87,14 @@ pub fn execute(
             }
         }
 
-        Statement::Block(stmts) => execute_block(stmts, &new_env),
+        Statement::Block(stmts) => execute_block(stmts, &new_env, false),
 
         Statement::While(cond, stmt) => {
             let mut value = eval(*cond.clone(), &new_env)?;
             loop {
                 match value {
                     EnvValue::Exp(Expression::CTrue) => {
-                        match execute(*stmt.clone(), &new_env, init)? {
+                        match execute(*stmt.clone(), &new_env, typecheck)? {
                             ControlFlow::Continue(control_env) => {
                                 new_env = control_env;
                                 value = eval(*cond.clone(), &new_env)?;
@@ -104,10 +107,10 @@ pub fn execute(
                 }
             }
         }
-        Statement::Sequence(s1, s2) => match execute(*s1, &new_env, init)? {
+        Statement::Sequence(s1, s2) => match execute(*s1, &new_env, typecheck)? {
             ControlFlow::Continue(control_env) => {
                 new_env = control_env;
-                execute(*s2, &new_env, init)
+                execute(*s2, &new_env, typecheck)
             }
             ControlFlow::Return(value) => return Ok(ControlFlow::Return(value)),
         },
@@ -147,9 +150,14 @@ fn call(name: Name, args: Vec<Expression>, env: &Environment) -> Result<EnvValue
             }
 
             // Execute function body
-            match execute(*func.body.clone(), &new_env, false)? {
-                ControlFlow::Return(value) => Ok(value),
-                ControlFlow::Continue(_) => Err("Function did not return a value".to_string()),
+            println!("Corpo da função: {:?}", func.body);
+            if let Statement::Block(stmts) = *func.body.clone() {
+                match execute_block(stmts, &new_env, false)? {
+                    ControlFlow::Return(value) => Ok(value),
+                    ControlFlow::Continue(_) => Err("Function did not return a value".to_string()),
+                }
+            } else {
+                Err(format!("Function without body"))
             }
         }
         _ => Err(format!("Function {} not found", name)),
@@ -429,9 +437,11 @@ fn lte(lhs: Expression, rhs: Expression, env: &Environment) -> Result<EnvValue, 
 mod tests {
     use std::collections::HashMap;
 
+
     use super::*;
     use crate::ir::ast::EnvValue::*;
     use crate::ir::ast::Expression::*;
+    use crate::parser::parser::parse;
     use crate::ir::ast::Function;
     use crate::ir::ast::Statement::*;
     use crate::ir::ast::Type::*;
@@ -658,12 +668,12 @@ mod tests {
                 Box::new(Var(String::from("y"))),
                 Box::new(Var(String::from("x"))),
             )),
-            None,
+            Some(TUnk),
         );
         let a4 = Assignment(
             String::from("x"),
             Box::new(Sub(Box::new(Var(String::from("x"))), Box::new(CInt(1)))),
-            None,
+            Some(TUnk),
         );
 
         let seq1 = Sequence(Box::new(a3), Box::new(a4));
@@ -750,19 +760,19 @@ mod tests {
         let env = HashMap::new();
 
         let second_condition = LT(Box::new(Var(String::from("x"))), Box::new(CInt(0)));
-        let second_then_stmt = Assignment(String::from("y"), Box::new(CInt(5)), None);
+        let second_then_stmt = Assignment(String::from("y"), Box::new(CInt(5)), Some(TUnk));
 
         let second_if_stmt =
             IfThenElse(Box::new(second_condition), Box::new(second_then_stmt), None);
 
-        let else_setup_stmt = Assignment(String::from("y"), Box::new(CInt(2)), None);
+        let else_setup_stmt = Assignment(String::from("y"), Box::new(CInt(2)), Some(TUnk));
         let else_stmt = Sequence(Box::new(else_setup_stmt), Box::new(second_if_stmt));
 
         let first_condition = EQ(
             Box::new(Var(String::from("x"))),
             Box::new(Var(String::from("y"))),
         );
-        let first_then_stmt = Assignment(String::from("y"), Box::new(CInt(1)), None);
+        let first_then_stmt = Assignment(String::from("y"), Box::new(CInt(1)), Some(TUnk));
 
         let first_if_stmt = IfThenElse(
             Box::new(first_condition),
@@ -952,12 +962,11 @@ mod tests {
             Function {
                 kind: TInteger,
                 params: Some(vec![("n".to_string(), TInteger)]),
-                body: Box::new(Sequence(
-                    Box::new(IfThenElse(
+                body: Box::new(Block(Vec::new([Box::new(IfThenElse(
                         Box::new(LT(Box::new(Var("n".to_string())), Box::new(CInt(0)))),
                         Box::new(Return(Box::new(CInt(0)))),
                         None,
-                    )),
+                    )), 
                     Box::new(Sequence(
                         Box::new(IfThenElse(
                             Box::new(LTE(Box::new(Var("n".to_string())), Box::new(CInt(2)))),
@@ -978,7 +987,7 @@ mod tests {
                             )),
                         )))),
                     )),
-                )),
+                ]))),
             },
         );
 

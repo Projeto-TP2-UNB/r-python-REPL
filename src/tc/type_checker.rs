@@ -30,15 +30,14 @@ pub fn check_exp(exp: Expression, env: &Environment) -> Result<Type, ErrorMessag
         Expression::FuncCall(name, args) => check_func_call(name, args, env),
     }
 }
-
 pub fn check_stmt(
     stmt: Statement,
     env: &Environment,
     exptd_type: Option<Type>,
 ) -> Result<ControlType, ErrorMessage> {
+    let mut new_env = env.clone();
     match stmt {
         Statement::Assignment(name, exp, kind) => {
-            let mut new_env = env.clone();
             let exp_type = check_exp(*exp, &new_env)?;
             let Some(def_type) = kind else {
                 return Err(format!("Assignment to non-existent variable: {}", name));
@@ -62,8 +61,21 @@ pub fn check_stmt(
             };
             Ok(ControlType::Continue(new_env))
         }
+        Statement::Block(stmts) => {
+            for stmt in stmts {
+                let (check_env, stmt_type) = match check_stmt(stmt, &new_env, exptd_type.clone())? {
+                    ControlType::Continue(control_env) => (control_env, None),
+                    ControlType::Return(control_type) => (new_env, Some(control_type)),
+                };
+                if let Some(kind) = stmt_type {
+                    return Ok(ControlType::Return(kind));
+                } else {
+                    new_env = check_env;
+                }
+            }
+            Ok(ControlType::Continue(new_env))
+        }
         Statement::IfThenElse(exp, stmt_then, option) => {
-            let new_env = env.clone();
             let exp_type = check_exp(*exp, &new_env)?;
 
             if exp_type != Type::TBool {
@@ -89,7 +101,6 @@ pub fn check_stmt(
             }
         }
         Statement::While(exp, stmt_while) => {
-            let new_env = env.clone();
             let exp_type = check_exp(*exp, &new_env)?;
 
             if exp_type != Type::TBool {
@@ -99,8 +110,6 @@ pub fn check_stmt(
             check_stmt(*stmt_while, &new_env, exptd_type)
         }
         Statement::Sequence(stmt1, stmt2) => {
-            let new_env = env.clone();
-
             let (new_env, stmt1_type) = match check_stmt(*stmt1, &new_env, exptd_type.clone())? {
                 ControlType::Continue(control_env) => (control_env, None),
                 ControlType::Return(control_type) => (new_env, Some(control_type)),
@@ -116,7 +125,6 @@ pub fn check_stmt(
             }
         }
         Statement::FuncDef(name, func) => {
-            let mut new_env = env.clone();
             new_env.insert(
                 name.clone(),
                 (Some(EnvValue::Func(func.clone())), Type::TFunction),
@@ -153,7 +161,7 @@ pub fn check_stmt(
 
             Ok(ControlType::Return(exp_type))
         }
-        _ => Err(String::from("not implemented yet")),
+        _ => Err(String::from("[Type Error] not implemented yet")),
     }
 }
 
