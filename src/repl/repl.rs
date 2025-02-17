@@ -21,14 +21,8 @@ pub fn repl() -> io::Result<()> {
         // Read input
         let mut input = String::new();
         // Break condition
-        loop {
-            io::stdin().read_line(&mut input)?;
-            if input.trim().ends_with(";") {
-                input = input.trim().to_string();
-                input.pop();
-                break;
-            }
-        }
+        io::stdin().read_line(&mut input)?;
+        let input = input.trim().to_string();
 
         // Handle inline commands (prefixed with '!')
         if input.starts_with('!') {
@@ -81,7 +75,7 @@ pub fn repl() -> io::Result<()> {
     Ok(())
 }
 
-/// Handles inline commands (prefixed with '!')
+/// Handles REPL commands (prefixed with '!')
 fn handle_inline_command(input: &str, env: &mut Environment) -> io::Result<()> {
     let command = input.trim_start_matches('!').trim();
     match command {
@@ -113,14 +107,7 @@ fn repl_parse_expression(input: &str, current_env: &Environment) -> Result<Strin
         Ok(("", expr)) => {
             // Evaluate the expression
             match eval(expr, &current_env.clone()) {
-                Ok(evaluated_expression) => match evaluated_expression {
-                    EnvValue::Exp(Expression::CInt(val)) => Ok(val.to_string()),
-                    EnvValue::Exp(Expression::CReal(val)) => Ok(val.to_string()),
-                    EnvValue::Exp(Expression::CString(val)) => Ok(val),
-                    EnvValue::Exp(Expression::CTrue) => Ok(String::from("True")),
-                    EnvValue::Exp(Expression::CFalse) => Ok(String::from("False")),
-                    _ => Err(format!("NonExistent Type")),
-                },
+                Ok(evaluated_expression) => Ok(format_env_value(&evaluated_expression)),
                 Err(e) => Err(format!("Evaluation Error: {}", e)),
             }
         }
@@ -131,7 +118,7 @@ fn repl_parse_expression(input: &str, current_env: &Environment) -> Result<Strin
 
 fn repl_parse_statements(input: &str, mut current_env: Environment) -> Result<Environment, String> {
     // Parse the input as a statement
-    match parse(input) {
+    match parse_semicolon(input) {
         Ok((remaining, statements)) => {
             if !remaining.is_empty() {
                 return Err(format!(
@@ -151,6 +138,67 @@ fn repl_parse_statements(input: &str, mut current_env: Environment) -> Result<En
             Ok(current_env.clone())
         }
         Err(e) => Err(format!("Statement Parse Error: {}", e)),
+    }
+}
+
+// For "-c" inline commands
+pub fn execute_inline_command(command: &str) -> io::Result<()> {
+    let env = Environment::new();
+    
+    // First try to parse as an expression
+    let output = match expression(command) {
+        Ok(("", expr)) => evaluate_expression(expr, &env),
+        _ => parse_and_execute_statements(command, &env),
+    };
+
+    handle_execution_output(output)
+}
+
+fn evaluate_expression(expr: Expression, env: &Environment) -> Result<String, String> {
+    eval(expr, env)
+        .map(|value| format_env_value(&value))
+        .map_err(|e| format!("Evaluation Error: {}", e))
+}
+
+fn parse_and_execute_statements(command: &str, env: &Environment) -> Result<String, String> {
+    match parse_semicolon(command) {
+        Ok(("", statements)) => {
+            execute_block(statements, env, false)
+                .map(|control_flow| match control_flow {
+                    ControlFlow::Return(value) => format_env_value(&value),
+                    _ => String::new(),
+                })
+                .map_err(|e| format!("Execution Error: {}", e))
+        }
+        Ok((remaining, _)) => Err(format!("Unparsed input: {:?}", remaining)),
+        Err(_) => Err("Parse Error: Invalid syntax".to_string()),
+    }
+}
+
+fn handle_execution_output(output: Result<String, String>) -> io::Result<()> {
+    match output {
+        Ok(msg) if !msg.is_empty() => {
+            println!("{}", msg);
+            Ok(())
+        }
+        Ok(_) => Ok(()),
+        Err(e) => {
+            eprintln!("{}", e);
+            Ok(())
+        }
+    }
+}
+
+// For formatting values
+fn format_env_value(value: &EnvValue) -> String {
+    match value {
+        EnvValue::Exp(Expression::CInt(val)) => val.to_string(),
+        EnvValue::Exp(Expression::CReal(val)) => val.to_string(),
+        EnvValue::Exp(Expression::CString(val)) => val.clone(),
+        EnvValue::Exp(Expression::CTrue) => "True".to_string(),
+        EnvValue::Exp(Expression::CFalse) => "False".to_string(),
+        EnvValue::Func(_) => "<function>".to_string(),
+        _ => "NonExistent Type".to_string(),
     }
 }
 
