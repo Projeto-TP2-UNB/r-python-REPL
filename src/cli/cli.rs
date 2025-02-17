@@ -1,32 +1,29 @@
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::process;
-use std::collections::HashMap;
 
 use crate::io;
-
 
 use crate::interpreter::interpreter::execute;
 use crate::parser::parser::*;
 
-use crate::ir::ast::{Environment, Statement, EnvValue, Expression};
 use crate::interpreter::interpreter::ControlFlow;
+use crate::ir::ast::{EnvValue, Environment, Expression, Statement};
 fn print_env(env: &Environment) {
     for (key, value) in env {
         println!("{} = {:?}", key, value);
     }
 }
 
+// pub fn cli() -> io::Result<()> {
+//     let args: Vec<String> = env::args().collect();
+//     if args.len() != 2 {
+//         eprintln!("usage: {} <file_path>", args[0]);
+//         process::exit(1);
+//     }
 
-pub fn cli() -> io::Result<()> {
-    let args: Vec<String> = env::args().collect();
-    if args.len() != 2 {
-        eprintln!("Usage: {} <file_path>", args[0]);
-        process::exit(1);
-    }
-    let file_path = &args[1];
-
-
+pub fn cli(file_path: &String) -> io::Result<()> {
     let file_content = fs::read_to_string(file_path).unwrap_or_else(|err| {
         eprintln!("Error reading file {}: {}", file_path, err);
         process::exit(1);
@@ -39,7 +36,6 @@ pub fn cli() -> io::Result<()> {
 
     let mut env: Environment = HashMap::new();
 
-
     println!("Environment before execution:");
     print_env(&env);
 
@@ -50,7 +46,7 @@ pub fn cli() -> io::Result<()> {
             }
             Ok(ControlFlow::Return(value)) => {
                 println!("Execution returned: {:?}", value);
-                break; 
+                break;
             }
             Err(err) => {
                 eprintln!("Error during execution: {}", err);
@@ -58,7 +54,6 @@ pub fn cli() -> io::Result<()> {
             }
         }
     }
-
 
     println!("\nEnvironment after execution:");
     print_env(&env);
