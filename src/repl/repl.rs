@@ -21,8 +21,14 @@ pub fn repl(env: Option<Environment>) -> io::Result<()> {
         // Read input
         let mut input = String::new();
         // Break condition
-        io::stdin().read_line(&mut input)?;
-        let input = input.trim().to_string();
+        loop {
+            io::stdin().read_line(&mut input)?;
+            if input.trim().ends_with(";") {
+                input = input.trim().to_string();
+                input.pop(); // Remove the semicolon
+                break;
+            }
+        }
 
         // Handle inline commands (prefixed with '!')
         if input.starts_with('!') {
@@ -118,7 +124,7 @@ fn repl_parse_expression(input: &str, current_env: &Environment) -> Result<Strin
 
 fn repl_parse_statements(input: &str, mut current_env: Environment) -> Result<Environment, String> {
     // Parse the input as a statement
-    match parse_semicolon(input) {
+    match parse(input) {
         Ok((remaining, statements)) => {
             if !remaining.is_empty() {
                 return Err(format!(
@@ -144,7 +150,7 @@ fn repl_parse_statements(input: &str, mut current_env: Environment) -> Result<En
 // For "-c" inline commands
 pub fn execute_inline_command(command: &str) -> io::Result<()> {
     let env = Environment::new();
-
+    
     // First try to parse as an expression
     let output = match expression(command) {
         Ok(("", expr)) => evaluate_expression(expr, &env),
@@ -161,13 +167,15 @@ fn evaluate_expression(expr: Expression, env: &Environment) -> Result<String, St
 }
 
 fn parse_and_execute_statements(command: &str, env: &Environment) -> Result<String, String> {
-    match parse_semicolon(command) {
-        Ok(("", statements)) => execute_block(statements, env, false)
-            .map(|control_flow| match control_flow {
-                ControlFlow::Return(value) => format_env_value(&value),
-                _ => String::new(),
-            })
-            .map_err(|e| format!("Execution Error: {}", e)),
+    match parse(command) {
+        Ok(("", statements)) => {
+            execute_block(statements, env, false)
+                .map(|control_flow| match control_flow {
+                    ControlFlow::Return(value) => format_env_value(&value),
+                    _ => String::new(),
+                })
+                .map_err(|e| format!("Execution Error: {}", e))
+        }
         Ok((remaining, _)) => Err(format!("Unparsed input: {:?}", remaining)),
         Err(_) => Err("Parse Error: Invalid syntax".to_string()),
     }
@@ -186,6 +194,7 @@ fn handle_execution_output(output: Result<String, String>) -> io::Result<()> {
         }
     }
 }
+
 
 // For formatting values
 fn format_env_value(value: &EnvValue) -> String {

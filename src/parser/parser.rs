@@ -394,18 +394,6 @@ pub fn parse(input: &str) -> IResult<&str, Vec<Statement>> {
     Ok((input, statements))
 }
 
-//Auxiliar parse function for semicolon
-pub fn parse_semicolon(input: &str) -> IResult<&str, Vec<Statement>> {
-    let (input, _) = space0(input)?; // Skip leading whitespace
-    let (input, statements) = separated_list0(
-        delimited(space0, char(';'), space0), // Parse statements separated by semicolons
-        statement
-    )(input)?;
-    let (input, _) = space0(input)?; // Skip trailing whitespace
-    let (input, _) = opt(char(';'))(input)?; // Allow optional trailing semicolon
-    Ok((input, statements))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*; // Import everything from parent module
