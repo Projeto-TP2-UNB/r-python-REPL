@@ -10,20 +10,13 @@ use crate::parser::parser::*;
 
 use crate::interpreter::interpreter::ControlFlow;
 use crate::ir::ast::{EnvValue, Environment, Expression, Statement};
-fn print_env(env: &Environment) {
+pub fn print_env(env: &Environment) {
     for (key, value) in env {
         println!("{} = {:?}", key, value);
     }
 }
 
-// pub fn cli() -> io::Result<()> {
-//     let args: Vec<String> = env::args().collect();
-//     if args.len() != 2 {
-//         eprintln!("usage: {} <file_path>", args[0]);
-//         process::exit(1);
-//     }
-
-pub fn cli(file_path: &String) -> io::Result<()> {
+pub fn cli(file_path: &String) -> io::Result<Environment> {
     let file_content = fs::read_to_string(file_path).unwrap_or_else(|err| {
         eprintln!("Error reading file {}: {}", file_path, err);
         process::exit(1);
@@ -57,5 +50,5 @@ pub fn cli(file_path: &String) -> io::Result<()> {
 
     println!("\nEnvironment after execution:");
     print_env(&env);
-    Ok(())
+    Ok(env)
 }

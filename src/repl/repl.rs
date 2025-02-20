@@ -8,11 +8,11 @@ use crate::parser::parser::*;
 use std::io::{self, Write};
 use std::process::Command;
 
-pub fn repl() -> io::Result<()> {
+pub fn repl(env: Option<Environment>) -> io::Result<()> {
     // Print welcome message
     println!("R-Python REPL");
     println!("Type !help' for more commands or '!exit' to quit'\n");
-    let mut current_env = Environment::new();
+    let mut current_env = env.unwrap_or(Environment::new());
     loop {
         // Display prompt
         print!("R-Python >>> ");
@@ -144,7 +144,7 @@ fn repl_parse_statements(input: &str, mut current_env: Environment) -> Result<En
 // For "-c" inline commands
 pub fn execute_inline_command(command: &str) -> io::Result<()> {
     let env = Environment::new();
-    
+
     // First try to parse as an expression
     let output = match expression(command) {
         Ok(("", expr)) => evaluate_expression(expr, &env),
@@ -162,14 +162,12 @@ fn evaluate_expression(expr: Expression, env: &Environment) -> Result<String, St
 
 fn parse_and_execute_statements(command: &str, env: &Environment) -> Result<String, String> {
     match parse_semicolon(command) {
-        Ok(("", statements)) => {
-            execute_block(statements, env, false)
-                .map(|control_flow| match control_flow {
-                    ControlFlow::Return(value) => format_env_value(&value),
-                    _ => String::new(),
-                })
-                .map_err(|e| format!("Execution Error: {}", e))
-        }
+        Ok(("", statements)) => execute_block(statements, env, false)
+            .map(|control_flow| match control_flow {
+                ControlFlow::Return(value) => format_env_value(&value),
+                _ => String::new(),
+            })
+            .map_err(|e| format!("Execution Error: {}", e)),
         Ok((remaining, _)) => Err(format!("Unparsed input: {:?}", remaining)),
         Err(_) => Err("Parse Error: Invalid syntax".to_string()),
     }
